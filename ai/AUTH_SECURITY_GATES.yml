@@ -1,0 +1,24 @@
+gates:
+  - name: "no_refresh_token_local_storage"
+    status: "required"
+    rule: "Do not store web refresh tokens in localStorage."
+
+  - name: "safe_redirects"
+    status: "required"
+    rule: "Validate all redirect targets before navigating."
+
+  - name: "no_user_enumeration"
+    status: "required"
+    rule: "Password reset response must not reveal whether account exists."
+
+  - name: "profile_bootstrap"
+    status: "required"
+    rule: "Signup must create or upsert a profile row."
+
+  - name: "auth_audit"
+    status: "required"
+    rule: "Signup, login, logout, reset request must write audit events."
+
+  - name: "no_secrets_in_logs"
+    status: "required"
+    rule: "Never log password, accessToken, refreshToken, code verifier, reset token."

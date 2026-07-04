@@ -1,0 +1,34 @@
+risk_levels:
+  low:
+    description: "Read-only or documentation-safe operation."
+    approval_required: false
+
+  medium:
+    description: "Reads sensitive metadata or changes non-critical configuration."
+    approval_required: false
+    audit_recommended: true
+
+  high:
+    description: "Writes app data, permissions, storage visibility, or user-facing state."
+    approval_required: true
+    audit_required: true
+    rollback_required: true
+
+  critical:
+    description: "Touches schema, secrets, payments, users, auth config, or destructive actions."
+    approval_required: true
+    backup_required: true
+    audit_required: true
+    rollback_required: true
+    production_default: "blocked_without_explicit_approval"
+
+examples:
+  low:
+    - admin.database.tables.list
+  high:
+    - admin.database.table.create
+    - admin.post.block
+  critical:
+    - admin.database.migration.execute
+    - admin.user.block
+    - admin.secret.create

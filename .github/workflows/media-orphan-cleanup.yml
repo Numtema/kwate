@@ -1,0 +1,108 @@
+name: KWATE Media Orphan Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Plan is read-only; apply deletes confirmed old orphan objects
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+        default: plan
+      target:
+        description: GitHub Environment containing InsForge admin secrets
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+      target_host:
+        description: Exact InsForge hostname without https:// (required for apply)
+        required: false
+        type: string
+      confirmation:
+        description: For apply only, type KWATE_MEDIA_CLEANUP
+        required: false
+        type: string
+      backup_confirmation:
+        description: For production apply only, type MEDIA_BACKUP_CONFIRMED
+        required: false
+        type: string
+      min_age_hours:
+        description: Objects younger than this are never deleted
+        required: true
+        type: number
+        default: 24
+      prefix:
+        description: Optional object-key prefix to limit the scan
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kwate-media-orphans-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  orphan-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.target }}
+
+    steps:
+      - name: Validate destructive inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.mode }}" == "apply" ]]; then
+            [[ "${{ inputs.confirmation }}" == "KWATE_MEDIA_CLEANUP" ]] || { echo "BLOCK: incorrect cleanup confirmation"; exit 1; }
+            [[ -n "${{ inputs.target_host }}" ]] || { echo "BLOCK: target_host is required"; exit 1; }
+          fi
+          if [[ "${{ inputs.mode }}" == "apply" && "${{ inputs.target }}" == "production" ]]; then
+            [[ "${{ inputs.backup_confirmation }}" == "MEDIA_BACKUP_CONFIRMED" ]] || { echo "BLOCK: media backup not confirmed"; exit 1; }
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 22.16.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Normalize portable lockfile
+        run: npm run prepare:lockfile
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Audit V7 safety controls
+        run: npm run audit:v7
+
+      - name: Scan or clean orphan objects
+        env:
+          INSFORGE_API_BASE_URL: ${{ secrets.INSFORGE_API_BASE_URL }}
+          NEXT_PUBLIC_INSFORGE_URL: ${{ secrets.NEXT_PUBLIC_INSFORGE_URL }}
+          INSFORGE_ADMIN_TOKEN: ${{ secrets.INSFORGE_ADMIN_TOKEN }}
+          INSFORGE_API_KEY: ${{ secrets.INSFORGE_API_KEY }}
+          MEDIA_ORPHAN_MIN_AGE_HOURS: ${{ inputs.min_age_hours }}
+          MEDIA_ORPHAN_PREFIX: ${{ inputs.prefix }}
+          CONFIRM_MEDIA_ORPHAN_CLEANUP: ${{ inputs.confirmation }}
+          CONFIRM_INSFORGE_TARGET_HOST: ${{ inputs.target_host }}
+        run: node scripts/cleanup-media-orphans.mjs --mode=${{ inputs.mode }}
+
+      - name: Upload orphan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: media-orphans-${{ inputs.mode }}-${{ inputs.target }}-${{ github.run_id }}
+          path: artifacts/media-orphan-report.json
+          if-no-files-found: warn
+          retention-days: 30

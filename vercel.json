@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "node scripts/prepare-lockfile.mjs && npm ci --no-audit --no-fund --prefer-offline",
+  "buildCommand": "npm run build:vercel",
+  "regions": [
+    "cdg1"
+  ]
+}

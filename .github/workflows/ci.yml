@@ -1,0 +1,50 @@
+name: KWATE CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kwate-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Audit, typecheck, lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 22.16.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Runtime preflight
+        run: npm run preflight
+
+      - name: Normalize portable lockfile
+        run: npm run prepare:lockfile
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Verify application
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          VERCEL: '1'
+        run: npm run verify:ci
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high

@@ -1,0 +1,30 @@
+channels:
+  "messages:user:{userId}":
+    purpose: "Notify a user about new messages"
+    subscribe_permission: "owner_only"
+    publish_permission: "server_only"
+    payload_policy: "minimal_notification_only"
+
+  "conversation:{conversationId}":
+    purpose: "Live updates inside an open conversation"
+    subscribe_permission: "participant_only"
+    publish_permission: "participant_or_server"
+    payload_policy: "no_secret_no_contact_leak"
+
+  "notifications:user:{userId}":
+    purpose: "General user notifications"
+    subscribe_permission: "owner_only"
+    publish_permission: "server_only"
+    payload_policy: "minimal_notification_only"
+
+  "payment:user:{userId}":
+    purpose: "Notify pass/payment status changes"
+    subscribe_permission: "owner_only"
+    publish_permission: "server_only"
+    payload_policy: "status_only"
+
+  "admin:moderation":
+    purpose: "Notify admins of new reports"
+    subscribe_permission: "admin_only"
+    publish_permission: "server_only"
+    payload_policy: "no_private_message_body"

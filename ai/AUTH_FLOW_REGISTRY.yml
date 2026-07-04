@@ -1,0 +1,46 @@
+flows:
+  signup_email_password:
+    route: "/signup"
+    steps:
+      - validate_name_email_password
+      - create_insforge_user
+      - create_profile
+      - write_audit_event
+      - redirect_welcome
+    failure_states:
+      - invalid_input
+      - email_already_used
+      - network_error
+
+  login_email_password:
+    route: "/login"
+    steps:
+      - validate_email_password
+      - create_session
+      - load_current_user
+      - write_audit_event
+      - redirect_home
+    failure_states:
+      - invalid_credentials
+      - network_error
+
+  password_reset:
+    route: "/forgot-password"
+    steps:
+      - validate_email
+      - send_reset_request
+      - show_neutral_success
+      - write_audit_event
+    failure_states:
+      - invalid_email
+      - network_error
+
+  logout:
+    routes:
+      - "/profile"
+      - "/settings"
+    steps:
+      - call_logout
+      - clear_session_state
+      - write_audit_event
+      - redirect_login

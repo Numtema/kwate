@@ -1,0 +1,36 @@
+version: "1.0"
+access:
+  public_profiles:
+    public_select: true
+    authenticated_select: true
+    mutations: false
+
+  profiles:
+    public_select: false
+    authenticated_select: "own_only"
+    insert: "own_only"
+    update: "own_only"
+    delete: false
+
+  categories:
+    public_select: "enabled_only"
+    authenticated_select: "enabled_only"
+    mutations: "admin_only"
+
+  posts:
+    public_select: "active_only"
+    authenticated_select: "active_or_owned"
+    insert: "authenticated_owner"
+    update: "owner_only"
+    hard_delete: false
+
+  post_media:
+    public_select: "active_post_only"
+    insert: "post_owner_only"
+    delete: "post_owner_only"
+
+  audit_events:
+    client_select: false
+    client_mutations: false
+    server_insert: true
+    admin_select: true

@@ -1,0 +1,66 @@
+version: "1.0"
+execution_order:
+  - version: "001-schema"
+    file: "insforge/migrations/001_kwate_core_schema.sql"
+    risk: "high"
+    destructive: false
+    approval_required: true
+    rollback: "insforge/rollback/001_kwate_core_rollback.sql"
+
+  - version: "001-rls"
+    file: "insforge/rls/001_kwate_core_rls.sql"
+    risk: "high"
+    destructive: false
+    approval_required: true
+    depends_on:
+      - "001-schema"
+
+  - version: "001-seed"
+    file: "insforge/seeds/001_kwate_categories.sql"
+    risk: "low"
+    destructive: false
+    approval_required: false
+    idempotent: true
+    depends_on:
+      - "001-schema"
+      - "001-rls"
+
+
+  - version: "002-schema"
+    file: "insforge/migrations/002_kwate_full_app.sql"
+    risk: "high"
+    destructive: false
+    approval_required: true
+    rollback: "insforge/rollback/002_kwate_full_app_rollback.sql"
+    depends_on:
+      - "001-schema"
+
+  - version: "002-rls"
+    file: "insforge/rls/002_kwate_full_app_rls.sql"
+    risk: "high"
+    destructive: false
+    approval_required: true
+    depends_on:
+      - "002-schema"
+
+  - version: "003-media-pipeline"
+    file: "insforge/migrations/003_kwate_media_pipeline.sql"
+    risk: "high"
+    destructive: false
+    approval_required: true
+    rollback: "insforge/rollback/003_kwate_media_pipeline_rollback.sql"
+    depends_on:
+      - "001-schema"
+      - "001-rls"
+
+verification:
+  files:
+    - "insforge/checks/001_kwate_core_smoke.sql"
+    - "insforge/checks/002_kwate_full_app_smoke.sql"
+    - "insforge/checks/003_kwate_media_pipeline_smoke.sql"
+  read_only: true
+
+prohibited:
+  - "Do not execute rollback without an explicit backup and approval."
+  - "Do not skip RLS after creating the tables."
+  - "Do not expose profiles directly for public profile pages; use public_profiles."

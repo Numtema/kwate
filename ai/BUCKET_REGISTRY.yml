@@ -1,0 +1,51 @@
+buckets:
+  public-post-media:
+    owner: "media-core"
+    visibility: "public"
+    purpose: "Public images attached to active posts"
+    allowed_mime:
+      - image/jpeg
+      - image/png
+      - image/webp
+      - image/avif
+    max_file_size_mb: 10
+    pii_allowed: false
+    can_be_public: true
+
+  avatars:
+    owner: "identity-core"
+    visibility: "public"
+    purpose: "Public user avatars"
+    allowed_mime:
+      - image/jpeg
+      - image/png
+      - image/webp
+    max_file_size_mb: 5
+    pii_allowed: false
+    can_be_public: true
+
+  private-message-media:
+    owner: "conversation-core"
+    visibility: "private"
+    purpose: "Private attachments exchanged in conversations"
+    allowed_mime:
+      - image/jpeg
+      - image/png
+      - image/webp
+      - application/pdf
+    max_file_size_mb: 20
+    pii_allowed: true
+    can_be_public: false
+
+  moderation-evidence:
+    owner: "trust-safety-core"
+    visibility: "private"
+    purpose: "Moderation evidence and reports"
+    allowed_mime:
+      - image/jpeg
+      - image/png
+      - image/webp
+      - application/pdf
+    max_file_size_mb: 20
+    pii_allowed: true
+    can_be_public: false

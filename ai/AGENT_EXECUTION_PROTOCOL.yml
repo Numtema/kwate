@@ -1,0 +1,45 @@
+version: "0.6.0"
+project: "KWATE"
+default_mode: "READ_ONLY"
+modes:
+  READ_ONLY:
+    writes_repo: false
+    writes_remote: false
+  PLAN:
+    writes_repo: false
+    writes_remote: false
+  CODE:
+    writes_repo: true
+    writes_remote: false
+  VERIFY:
+    writes_repo: false
+    writes_remote: false
+  APPLY:
+    writes_repo: false
+    writes_remote: true
+    approval_required: true
+  REPAIR:
+    writes_repo: true
+    writes_remote: conditional
+preflight:
+  - "npm run preflight"
+  - "npm run audit:lockfile"
+before_push:
+  - "npm ci --no-audit --no-fund --prefer-offline"
+  - "npm run verify:ci"
+remote_gates:
+  insforge_apply:
+    workflow: ".github/workflows/insforge-provision.yml"
+    trigger: "workflow_dispatch"
+    confirmation: "KWATE_PROVISION"
+    target_host_exact_match: true
+    production_backup_confirmation: "BACKUP_CONFIRMED"
+forbidden:
+  - "print_secret_values"
+  - "disable_rls"
+  - "automatic_insforge_migration_on_push"
+  - "grant_entitlement_from_success_redirect"
+  - "recreate_runtime_mocks"
+verdicts:
+  - "PASS"
+  - "BLOCK"

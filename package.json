@@ -1,0 +1,67 @@
+{
+  "name": "kwate-insforge",
+  "version": "0.7.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "clean": "rm -rf .next",
+    "preflight": "node scripts/preflight-v6.mjs",
+    "audit:lockfile": "node scripts/audit-lockfile.mjs",
+    "audit:step3": "node scripts/audit-step3.mjs",
+    "migration:payload": "node scripts/build-migration-payload.mjs",
+    "audit:step4": "node scripts/audit-step4.mjs",
+    "build:verify": "NEXT_DISABLE_STANDALONE=true next build",
+    "typecheck": "tsc --noEmit",
+    "audit:step5": "node scripts/audit-step5.mjs",
+    "audit:v6": "node scripts/audit-v6.mjs",
+    "insforge:plan": "node --env-file-if-exists=.env.local scripts/provision-insforge.mjs --mode=plan",
+    "insforge:verify": "node --env-file-if-exists=.env.local scripts/provision-insforge.mjs --mode=verify",
+    "insforge:provision": "node --env-file-if-exists=.env.local scripts/provision-insforge.mjs --mode=apply",
+    "build:vercel": "next build",
+    "verify:ci": "npm run audit:lockfile && npm run audit:step3 && npm run audit:step4 && npm run audit:step5 && npm run audit:v6 && npm run audit:v7 && npm run typecheck && npm run lint && VERCEL=1 npm run build:vercel",
+    "verify": "npm run verify:ci",
+    "prepare:lockfile": "node scripts/prepare-lockfile.mjs",
+    "audit:v7": "node scripts/audit-v7.mjs",
+    "test:v7:two-account": "node --env-file-if-exists=.env.local scripts/test-v7-two-account.mjs",
+    "media:orphans:plan": "node --env-file-if-exists=.env.local scripts/cleanup-media-orphans.mjs --mode=plan",
+    "media:orphans:apply": "node --env-file-if-exists=.env.local scripts/cleanup-media-orphans.mjs --mode=apply"
+  },
+  "dependencies": {
+    "@insforge/sdk": "^1.4.3",
+    "autoprefixer": "^10.4.21",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.553.0",
+    "motion": "^12.23.24",
+    "next": "15.5.20",
+    "postcss": "8.5.16",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "stripe": "^18.5.0",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.11",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "8.57.1",
+    "eslint-config-next": "15.5.20",
+    "tailwindcss": "4.1.11",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
+  "overrides": {
+    "postcss": "$postcss"
+  },
+  "packageManager": "npm@10.9.2"
+}

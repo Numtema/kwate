@@ -1,0 +1,48 @@
+version: "1.0"
+feature: "kwate-v7-media-pipeline"
+
+lifecycle:
+  create:
+    initial_status: "draft"
+    publish_gate: "public.kwate_publish_post(uuid, integer)"
+    abort_gate: "public.kwate_abort_post_draft(uuid)"
+    delete_gate: "public.kwate_delete_post(uuid)"
+    direct_lifecycle_columns: "revoked from PUBLIC"
+  statuses:
+    - draft
+    - active
+    - paused
+    - sold
+    - blocked
+    - deleted
+
+media:
+  bucket: "public-post-media"
+  max_files: 5
+  max_file_size_bytes: 10485760
+  allowed_mime:
+    - image/jpeg
+    - image/png
+    - image/webp
+    - image/avif
+  key_pattern: "{userId}/{postId}/{uuid}.{extension}"
+  metadata_table: "post_media"
+
+security:
+  owner_match_enforced_by: "trg_post_media_validate_insert"
+  direct_active_insert: "blocked by PostgreSQL column privilege"
+  direct_status_update: "blocked by PostgreSQL column privilege"
+  cross_user_test: "scripts/test-v7-two-account.mjs"
+  orphan_scan: "scripts/cleanup-media-orphans.mjs"
+  orphan_apply_confirmation: "KWATE_MEDIA_CLEANUP"
+
+required_tests:
+  - "draft is private to owner"
+  - "owner cannot bypass draft-to-active RPC"
+  - "five files upload and index"
+  - "publish count matches metadata count"
+  - "second account can read active post"
+  - "second account cannot update foreign post"
+  - "second account cannot attach foreign media"
+  - "second account cannot read private profile"
+  - "failed pipeline rolls back uploaded files"

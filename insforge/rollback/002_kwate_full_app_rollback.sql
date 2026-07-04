@@ -1,0 +1,16 @@
+begin;
+drop function if exists public.kwate_mark_conversation_read(uuid);
+drop function if exists public.kwate_is_conversation_member(uuid);
+drop function if exists public.kwate_get_post_contact(uuid);
+drop function if exists public.kwate_start_conversation(uuid);
+drop trigger if exists trg_messages_touch_conversation on public.messages;
+drop function if exists public.kwate_touch_conversation();
+drop table if exists public.contact_unlocks cascade;
+drop table if exists public.billing_entitlements cascade;
+drop table if exists public.messages cascade;
+drop table if exists public.conversation_members cascade;
+drop table if exists public.conversations cascade;
+drop table if exists public.reports cascade;
+drop table if exists public.saved_posts cascade;
+alter table public.profiles drop column if exists bio;
+commit;

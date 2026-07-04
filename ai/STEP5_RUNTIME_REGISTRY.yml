@@ -1,0 +1,22 @@
+step5:
+  status: implemented
+  mocks_allowed: false
+  features:
+    posts:
+      tables: [posts, categories, post_media, saved_posts, reports]
+      bucket: public-post-media
+      actions: [list, search, create, update, soft_delete, save, report, unlock_contact]
+    profiles:
+      tables: [profiles, public_profiles]
+      actions: [read_self, update_self, read_public]
+    messages:
+      tables: [conversations, conversation_members, messages]
+      functions: [kwate_start_conversation, kwate_mark_conversation_read, kwate_is_conversation_member]
+    billing:
+      tables: [billing_entitlements, contact_unlocks]
+      functions: [kwate_get_post_contact]
+      webhook: app/api/webhooks/stripe/route.ts
+  deployment:
+    platform: vercel
+    runbook: AGENTS.md
+    health: /api/health

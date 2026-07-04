@@ -1,0 +1,96 @@
+name: KWATE V7 Two-Account Production Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: GitHub Environment containing InsForge and test-account secrets
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+      confirmation:
+        description: Type KWATE_V7_TEST
+        required: true
+        type: string
+      keep_post:
+        description: Keep the generated test announcement after success
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kwate-v7-smoke-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  two-account-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: ${{ inputs.target }}
+
+    steps:
+      - name: Validate confirmation
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.confirmation }}" == "KWATE_V7_TEST" ]] || { echo "BLOCK: incorrect confirmation"; exit 1; }
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 22.16.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Normalize portable lockfile
+        run: npm run prepare:lockfile
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Verify repository
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          VERCEL: '1'
+        run: npm run verify:ci
+
+      - name: Verify InsForge schema and bucket
+        env:
+          DEPLOYMENT_TARGET: ${{ inputs.target }}
+          INSFORGE_API_BASE_URL: ${{ secrets.INSFORGE_API_BASE_URL }}
+          NEXT_PUBLIC_INSFORGE_URL: ${{ secrets.NEXT_PUBLIC_INSFORGE_URL }}
+          INSFORGE_ADMIN_TOKEN: ${{ secrets.INSFORGE_ADMIN_TOKEN }}
+          INSFORGE_API_KEY: ${{ secrets.INSFORGE_API_KEY }}
+        run: node scripts/provision-insforge.mjs --mode=verify
+
+      - name: Run real two-account RLS and five-photo test
+        env:
+          NEXT_PUBLIC_INSFORGE_URL: ${{ secrets.NEXT_PUBLIC_INSFORGE_URL }}
+          NEXT_PUBLIC_INSFORGE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_INSFORGE_ANON_KEY }}
+          KWATE_TEST_USER_A_EMAIL: ${{ secrets.KWATE_TEST_USER_A_EMAIL }}
+          KWATE_TEST_USER_A_PASSWORD: ${{ secrets.KWATE_TEST_USER_A_PASSWORD }}
+          KWATE_TEST_USER_B_EMAIL: ${{ secrets.KWATE_TEST_USER_B_EMAIL }}
+          KWATE_TEST_USER_B_PASSWORD: ${{ secrets.KWATE_TEST_USER_B_PASSWORD }}
+          KWATE_TEST_KEEP_POST: ${{ inputs.keep_post }}
+          CONFIRM_V7_PRODUCTION_TEST: ${{ inputs.confirmation }}
+        run: npm run test:v7:two-account
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kwate-v7-production-test-${{ inputs.target }}-${{ github.run_id }}
+          path: |
+            artifacts/insforge-provision-report.json
+            artifacts/v7-two-account-report.json
+          if-no-files-found: warn
+          retention-days: 30

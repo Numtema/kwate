@@ -1,0 +1,67 @@
+version: "1.0"
+source: "insforge/rls/001_kwate_core_rls.sql"
+identity_function: "auth.uid()"
+
+policies:
+  profiles_select_own:
+    table: profiles
+    command: SELECT
+    actor: authenticated_user
+    rule: "auth.uid() = user_id"
+
+  profiles_insert_own:
+    table: profiles
+    command: INSERT
+    actor: authenticated_user
+    rule: "auth.uid() = user_id"
+
+  profiles_update_own:
+    table: profiles
+    command: UPDATE
+    actor: authenticated_user
+    rule: "owner and profile is neither deleted nor blocked"
+
+  categories_select_enabled:
+    table: categories
+    command: SELECT
+    actor: public
+    rule: "enabled = true"
+
+  posts_select_public_or_owner:
+    table: posts
+    command: SELECT
+    actor: public_or_owner
+    rule: "active and not deleted, or owner"
+
+  posts_insert_own:
+    table: posts
+    command: INSERT
+    actor: authenticated_user
+    rule: "auth.uid() = owner_id"
+
+  posts_update_own:
+    table: posts
+    command: UPDATE
+    actor: owner
+    rule: "owner, not blocked, not hard-deleted"
+
+  post_media_select_public_or_owner:
+    table: post_media
+    command: SELECT
+    actor: public_or_owner
+    rule: "owner or media belongs to an active post"
+
+  post_media_insert_owned_post:
+    table: post_media
+    command: INSERT
+    actor: owner
+    rule: "owner owns both media row and target post"
+
+  post_media_delete_own:
+    table: post_media
+    command: DELETE
+    actor: owner
+    rule: "owner owns both media row and target post"
+
+no_client_policy:
+  - audit_events

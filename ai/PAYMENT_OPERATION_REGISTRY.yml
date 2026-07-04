@@ -1,0 +1,40 @@
+operations:
+  pass.checkout_start:
+    method: "POST"
+    path: "/api/payments/{environment}/checkout-sessions"
+    risk: "critical"
+    actor: "authenticated_user"
+    requires:
+      - valid_plan
+      - authenticated_user
+      - idempotency_key
+      - payment_session_record
+      - audit_log
+    writes:
+      - payment_sessions
+      - audit_events
+
+  payment.webhook_receive:
+    method: "POST"
+    path: "/api/webhooks/stripe/{environment}"
+    risk: "critical"
+    actor: "stripe"
+    requires:
+      - raw_body
+      - stripe_signature
+      - idempotent_processing
+      - audit_log
+    writes:
+      - payment_sessions
+      - passes
+      - audit_events
+
+  pass.customer_portal:
+    method: "POST"
+    path: "/api/payments/{environment}/customer-portal-sessions"
+    risk: "high"
+    actor: "authenticated_user"
+    requires:
+      - authenticated_user
+      - billing_subject
+      - return_url_validation

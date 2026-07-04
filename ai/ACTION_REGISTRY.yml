@@ -1,0 +1,158 @@
+actions:
+  auth.signup:
+    actor: "anonymous"
+    source: "src/features/auth/actions.ts"
+    validation: "src/features/auth/schema.ts"
+    permission: "public_signup_enabled"
+    reads:
+      - auth_config
+    writes:
+      - profiles
+      - audit_events
+    events:
+      - auth.signup
+    ui_states:
+      - idle
+      - loading
+      - success
+      - error
+    tests:
+      - "valid signup creates profile"
+      - "invalid email rejected"
+      - "weak password rejected"
+
+  auth.login:
+    actor: "anonymous"
+    source: "src/features/auth/actions.ts"
+    validation: "src/features/auth/schema.ts"
+    permission: "valid_credentials"
+    writes:
+      - audit_events
+    events:
+      - auth.login
+    ui_states:
+      - idle
+      - loading
+      - success
+      - error
+
+  post.create:
+    actor: "authenticated_user"
+    source: "features/posts/repository.ts"
+    validation: "features/posts/schema.ts"
+    permission: "authenticated"
+    reads:
+      - profiles
+      - categories
+    writes:
+      - posts
+      - post_media
+      - audit_events
+    lifecycle:
+      - "draft"
+      - "media upload"
+      - "media metadata"
+      - "kwate_publish_post RPC"
+      - "active"
+    rollback:
+      - "delete uploaded post_media rows"
+      - "delete uploaded storage objects"
+      - "soft-delete failed draft"
+    events:
+      - post.created
+    ui_states:
+      - idle
+      - loading
+      - success
+      - error
+    tests:
+      - "authenticated user can create post"
+      - "anonymous cannot create post"
+      - "invalid payload rejected"
+
+  post.update:
+    actor: "authenticated_user"
+    source: "features/posts/repository.ts"
+    validation: "features/posts/schema.ts"
+    permission: "owner_only"
+    reads:
+      - posts
+    writes:
+      - posts
+      - audit_events
+    events:
+      - post.updated
+    tests:
+      - "owner can update own post"
+      - "user cannot update another post"
+
+  post.delete_soft:
+    actor: "authenticated_user"
+    source: "features/posts/repository.ts"
+    validation: "post id"
+    permission: "owner_only"
+    reads:
+      - posts
+    writes:
+      - posts
+      - audit_events
+    events:
+      - post.deleted_soft
+    default_policy: "soft_delete"
+
+  contact.unlock:
+    actor: "authenticated_user"
+    source: "src/features/contact/actions.ts"
+    validation: "post id"
+    permission: "pass_or_free_rule"
+    reads:
+      - posts
+      - passes
+      - contact_unlocks
+    writes:
+      - contact_unlocks
+      - audit_events
+    events:
+      - contact.unlocked
+    risk: "high"
+
+  pass.checkout_start:
+    actor: "authenticated_user"
+    source: "src/features/billing/actions.ts"
+    validation: "plan id"
+    permission: "authenticated"
+    reads:
+      - passes
+    writes:
+      - payment_sessions
+      - audit_events
+    events:
+      - pass.checkout_started
+    risk: "critical"
+
+  pass.activate:
+    actor: "system_webhook"
+    source: "src/server/webhooks/stripe.ts"
+    validation: "stripe signature + payment status"
+    permission: "webhook_valid"
+    reads:
+      - payment_sessions
+    writes:
+      - passes
+      - payment_sessions
+      - audit_events
+    events:
+      - pass.activated
+    risk: "critical"
+
+  report.create:
+    actor: "authenticated_user"
+    source: "src/features/reports/actions.ts"
+    validation: "target + reason"
+    permission: "authenticated"
+    writes:
+      - reports
+      - audit_events
+    events:
+      - report.created
+    risk: "high"

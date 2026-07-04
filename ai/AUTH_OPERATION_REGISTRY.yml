@@ -1,0 +1,46 @@
+operations:
+  auth.signup:
+    method: "POST"
+    path: "/api/auth/users"
+    risk: "medium"
+    public: true
+    creates_user: true
+    creates_profile: true
+    audit: "auth.signup"
+
+  auth.login:
+    method: "POST"
+    path: "/api/auth/sessions"
+    risk: "medium"
+    public: true
+    creates_session: true
+    audit: "auth.login"
+
+  auth.current_user.get:
+    method: "GET"
+    path: "/api/auth/sessions/current"
+    risk: "low"
+    auth_required: true
+
+  auth.logout:
+    method: "POST"
+    path: "/api/auth/logout"
+    risk: "low"
+    auth_required: true
+    clears_session: true
+    audit: "auth.logout"
+
+  auth.password_reset.request:
+    method: "POST"
+    path: "/api/auth/email/send-reset-password"
+    risk: "medium"
+    public: true
+    prevents_user_enumeration: true
+    audit: "auth.password_reset_requested"
+
+  auth.password_reset.confirm:
+    method: "POST"
+    path: "/api/auth/email/reset-password"
+    risk: "high"
+    changes_secret: true
+    audit: "auth.password_reset_completed"
