@@ -1,0 +1,101 @@
+name: KWATE InsForge Control Plane
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Read-only plan/verify, or guarded remote apply
+        required: true
+        type: choice
+        options:
+          - plan
+          - verify
+          - apply
+        default: plan
+      target:
+        description: GitHub Environment containing the target secrets
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+      confirmation:
+        description: For apply only, type KWATE_PROVISION
+        required: false
+        type: string
+      target_host:
+        description: For apply only, exact InsForge hostname without https://
+        required: false
+        type: string
+      backup_confirmation:
+        description: For production apply only, type BACKUP_CONFIRMED
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kwate-insforge-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  control-plane:
+    name: InsForge ${{ inputs.mode }} — ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.target }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 22.16.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate manual approval inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.mode }}" == "apply" ]]; then
+            [[ "${{ inputs.confirmation }}" == "KWATE_PROVISION" ]] || { echo "BLOCK: incorrect apply confirmation"; exit 1; }
+            [[ -n "${{ inputs.target_host }}" ]] || { echo "BLOCK: target_host is required"; exit 1; }
+          fi
+          if [[ "${{ inputs.mode }}" == "apply" && "${{ inputs.target }}" == "production" ]]; then
+            [[ "${{ inputs.backup_confirmation }}" == "BACKUP_CONFIRMED" ]] || { echo "BLOCK: production backup is not confirmed"; exit 1; }
+          fi
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Verify repository before remote operation
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          VERCEL: '1'
+        run: npm run verify:ci
+
+      - name: Execute InsForge control plane
+        env:
+          DEPLOYMENT_TARGET: ${{ inputs.target }}
+          INSFORGE_API_BASE_URL: ${{ secrets.INSFORGE_API_BASE_URL }}
+          NEXT_PUBLIC_INSFORGE_URL: ${{ secrets.NEXT_PUBLIC_INSFORGE_URL }}
+          INSFORGE_ADMIN_TOKEN: ${{ secrets.INSFORGE_ADMIN_TOKEN }}
+          INSFORGE_API_KEY: ${{ secrets.INSFORGE_API_KEY }}
+          CONFIRM_INSFORGE_PROVISION: ${{ inputs.confirmation }}
+          CONFIRM_INSFORGE_TARGET_HOST: ${{ inputs.target_host }}
+          CONFIRM_PRODUCTION_BACKUP: ${{ inputs.backup_confirmation }}
+        run: node scripts/provision-insforge.mjs --mode=${{ inputs.mode }}
+
+      - name: Upload operation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insforge-${{ inputs.mode }}-${{ inputs.target }}-${{ github.run_id }}
+          path: artifacts/insforge-provision-report.json
+          if-no-files-found: warn
+          retention-days: 30
