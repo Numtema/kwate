@@ -1,162 +1,136 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Repeat2, Paintbrush, ShoppingBasket, ImagePlus, MapPin, Check } from "lucide-react";
-import { useMock } from "@/components/MockProvider";
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Camera, Loader2, Paintbrush, Repeat2, ShoppingBasket, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
+import { createPost, getPost, updatePost } from '@/features/posts/repository';
+import type { PostType } from '@/features/posts/types';
 
 export default function PublishPage() {
   const router = useRouter();
-  const { addPost } = useMock();
-  
-  const [type, setType] = useState<"service" | "echange" | "vente" | null>(null);
-  const [title, setTitle] = useState("");
-  const [price, setPrice] = useState("");
-  const [text, setText] = useState("");
-  const [zone, setZone] = useState("Douala · Makepe");
+  const { user } = useAuth();
+  const initialized = useRef(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [loadingPost, setLoadingPost] = useState(false);
+  const [type, setType] = useState<PostType>('service');
+  const [title, setTitle] = useState('');
+  const [price, setPrice] = useState('');
+  const [description, setDescription] = useState('');
+  const [zone, setZone] = useState('Douala');
+  const [files, setFiles] = useState<File[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
 
-  const handlePublish = () => {
-    if (!type || !title || !text || (!price && type !== "echange")) return;
-    addPost({
-      categoryId: type,
-      title,
-      price: type === "echange" ? price || "Échange de denrées" : price,
-      text,
-      zone
-    });
-    router.push("/");
+  useEffect(() => {
+    if (!user || initialized.current) return;
+    initialized.current = true;
+    const id = new URLSearchParams(window.location.search).get('edit');
+    if (!id) return;
+
+    setEditId(id);
+    setLoadingPost(true);
+    void getPost(id)
+      .then((post) => {
+        if (!post || post.owner_id !== user.id) throw new Error('Annonce introuvable ou modification interdite.');
+        setType(post.type);
+        setTitle(post.title);
+        setDescription(post.description);
+        setPrice(post.price_label ?? '');
+        setZone(post.zone);
+      })
+      .catch((cause) => setError(cause instanceof Error ? cause.message : 'Annonce indisponible.'))
+      .finally(() => setLoadingPost(false));
+  }, [user]);
+
+  const onFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    setFiles(Array.from(event.target.files ?? []).slice(0, 5));
+  };
+
+  const submit = async () => {
+    if (!user) return;
+    setSubmitting(true);
+    setError('');
+    setWarning('');
+    try {
+      const payload = {
+        type,
+        title,
+        description,
+        priceLabel: type === 'echange' ? (price || 'Échange') : price,
+        zone,
+      };
+
+      if (editId) {
+        const post = await updatePost(user.id, editId, payload);
+        router.push(`/post/${post.id}`);
+      } else {
+        const result = await createPost(user.id, { ...payload, files });
+        if (result.warnings.length) setWarning(result.warnings.join(' '));
+        router.push(`/post/${result.post.id}`);
+      }
+      router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Enregistrement impossible.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="flex flex-col bg-zinc-950 min-h-screen text-white rounded-t-[32px] md:rounded-none">
-      <header className="px-6 py-4 pt-8 bg-zinc-950 sticky top-0 z-10 flex items-center justify-between border-b border-white/5">
-        <button onClick={() => router.back()} className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-white hover:bg-zinc-800 transition-colors shadow-sm bg-zinc-900">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-[20px] font-space font-black tracking-tighter">Nouvelle annonce</h1>
-        <div className="w-12"></div>
+    <div className="min-h-full bg-zinc-950">
+      <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-white/5 bg-zinc-950/90 px-5 py-5 backdrop-blur-xl">
+        <button onClick={() => router.back()} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-zinc-900"><ArrowLeft className="h-5 w-5" /></button>
+        <div><p className="text-[10px] font-bold uppercase tracking-widest text-green-500">{editId ? 'Modification' : 'Nouvelle annonce'}</p><h1 className="font-space text-2xl font-black">{editId ? 'Modifier l’annonce' : 'Publier sur KWATE'}</h1></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-5 py-6 pb-20 relative z-10">
-        <div className="absolute top-10 right-0 w-64 h-64 bg-green-500/5 blur-[80px] rounded-full pointer-events-none -z-10"></div>
-        
-        <h2 className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-4 ml-2.5">Type d'annonce</h2>
+      <main className="space-y-7 px-5 py-7">
+        {loadingPost && <div className="flex items-center justify-center gap-3 rounded-[28px] bg-zinc-900 p-8 text-sm font-bold text-zinc-400"><Loader2 className="h-5 w-5 animate-spin" />Chargement de l’annonce…</div>}
 
-        <div className="grid grid-cols-3 gap-3 mb-8">
-          <TypeButton
-            icon={Paintbrush}
-            label="Service"
-            selected={type === "service"}
-            onClick={() => setType("service")}
-          />
-          <TypeButton
-            icon={Repeat2}
-            label="Échange"
-            selected={type === "echange"}
-            onClick={() => setType("echange")}
-          />
-          <TypeButton
-            icon={ShoppingBasket}
-            label="Vente"
-            selected={type === "vente"}
-            onClick={() => setType("vente")}
-          />
-        </div>
-
-        <div className="space-y-5">
-          <div className="bg-zinc-900 border border-white/5 rounded-[32px] p-6 space-y-6 shadow-lg shadow-black/20">
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5 ml-1.5 cursor-pointer">Titre</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={type === "echange" ? "Ex: J'échange 2 régimes de plantain" : "Ex: Dépannage plomberie..."}
-                className="w-full bg-zinc-950 border border-white/5 rounded-[20px] px-5 py-4 text-[16px] font-bold text-white placeholder-zinc-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors shadow-inner"
-               />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5 ml-1.5 cursor-pointer">
-                Photos <span className="font-normal opacity-70">(Optionnel)</span>
-              </label>
-              <div className="flex gap-3">
-                <button className="w-[100px] h-[100px] bg-zinc-950 border border-dashed border-white/10 rounded-[20px] flex flex-col items-center justify-center text-zinc-500 hover:text-green-500 hover:border-green-500/30 hover:bg-green-500/5 transition-colors group">
-                  <ImagePlus className="w-7 h-7 mb-2 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Ajouter</span>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5 ml-1.5 cursor-pointer">Description</label>
-              <textarea
-                rows={4}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Décrivez en détail ce que vous proposez..."
-                className="w-full bg-zinc-950 border border-white/5 rounded-[20px] px-5 py-4 text-[15px] font-medium text-white placeholder-zinc-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors resize-none shadow-inner"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5 ml-1.5 cursor-pointer">
-                {type === "echange" ? "Contre quoi ?" : "Prix (FCFA)"}
-              </label>
-              <input
-                type="text"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder={type === "echange" ? "Ex: Huile rouge, arachides..." : "Ex: 5000"}
-                className="w-full bg-zinc-950 border border-white/5 rounded-[20px] px-5 py-4 text-[16px] font-bold text-white placeholder-zinc-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors shadow-inner"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5 ml-1.5 cursor-pointer">Localisation</label>
-              <div className="relative">
-                <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                <input
-                  type="text"
-                  value={zone}
-                  onChange={(e) => setZone(e.target.value)}
-                  placeholder="Douala · Makepe"
-                  className="w-full bg-zinc-950 border border-white/5 rounded-[20px] pl-12 pr-5 py-4 text-[15px] font-bold text-white focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors shadow-inner"
-                />
-              </div>
-            </div>
+        <section>
+          <label className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-zinc-500">Type d’annonce</label>
+          <div className="grid grid-cols-3 gap-3">
+            <TypeButton active={type === 'service'} onClick={() => setType('service')} icon={Paintbrush} label="Service" />
+            <TypeButton active={type === 'echange'} onClick={() => setType('echange')} icon={Repeat2} label="Échange" />
+            <TypeButton active={type === 'vente'} onClick={() => setType('vente')} icon={ShoppingBasket} label="Vente" />
           </div>
+        </section>
+
+        <Field label="Titre"><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={140} placeholder="Ex. Réparation de téléphones" className="input" /></Field>
+        <Field label="Description"><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={5000} rows={6} placeholder="Décrivez clairement votre offre, vos conditions et votre disponibilité…" className="input resize-none" /></Field>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label={type === 'echange' ? 'Ce que vous recherchez' : 'Prix / tarif'}><input value={price} onChange={(event) => setPrice(event.target.value)} maxLength={120} placeholder={type === 'echange' ? 'Ex. Huile rouge ou arachides' : 'Ex. Dès 10 000 FCFA'} className="input" /></Field>
+          <Field label="Zone"><input value={zone} onChange={(event) => setZone(event.target.value)} maxLength={120} placeholder="Ville · Quartier" className="input" /></Field>
         </div>
 
-        <button
-          disabled={!type || !title || !text}
-          onClick={handlePublish}
-          className={`w-full mt-8 h-[64px] rounded-full font-black text-[16px] flex items-center justify-center transition-all shadow-xl ${
-             type && title && text ? 'bg-green-500 text-black active:scale-[0.98] shadow-green-500/20' : 'bg-zinc-900 border border-white/5 text-zinc-600 cursor-not-allowed shadow-none'
-          }`}
-        >
-          {type && title && text ? (
-            <>
-              <Check className="w-5 h-5 mr-2" strokeWidth={3} />
-              Publier l'annonce
-            </>
-          ) : (
-            "Remplissez les champs"
-          )}
+        {!editId ? (
+          <section>
+            <label className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-zinc-500">Photos (5 maximum)</label>
+            <label className="flex cursor-pointer items-center justify-center gap-3 rounded-[28px] border border-dashed border-white/15 bg-zinc-900 p-7 text-sm font-bold text-zinc-300 hover:border-green-500/50">
+              <Camera className="h-5 w-5 text-green-400" /> Choisir des images
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={onFiles} className="hidden" />
+            </label>
+            {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file, index) => <span key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-bold"><span className="max-w-40 truncate">{file.name}</span><button onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}><X className="h-3.5 w-3.5" /></button></span>)}</div>}
+          </section>
+        ) : <p className="rounded-2xl border border-white/5 bg-zinc-900 p-4 text-xs font-semibold text-zinc-400">Les photos existantes sont conservées pendant cette modification.</p>}
+
+        {error && <p className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</p>}
+        {warning && <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm font-bold text-amber-200">{warning}</p>}
+
+        <button onClick={() => void submit()} disabled={submitting || loadingPost || !user} className="flex w-full items-center justify-center rounded-full bg-green-500 py-4 text-base font-black text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50">
+          {submitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Enregistrement…</> : editId ? 'Enregistrer les modifications' : 'Publier maintenant'}
         </button>
       </main>
+      <style jsx>{`.input{width:100%;border-radius:1.4rem;border:1px solid rgba(255,255,255,.08);background:#18181b;padding:1rem 1.1rem;color:white;font-size:.95rem;font-weight:600;outline:none}.input:focus{border-color:#22c55e}`}</style>
     </div>
   );
 }
 
-function TypeButton({ icon: Icon, label, selected, onClick }: any) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center justify-center p-5 rounded-[28px] border transition-all active:scale-[0.95] ${selected ? 'bg-green-500 text-black border-green-500 shadow-lg shadow-green-500/20' : 'bg-zinc-900 border-white/5 text-white hover:bg-zinc-800 hover:border-white/10'}`}
-    >
-      <Icon className={`w-7 h-7 mb-2.5 ${selected ? 'text-black' : 'text-zinc-400'}`} />
-      <span className={`text-[13px] tracking-tight ${selected ? 'font-black' : 'font-bold text-zinc-400'}`}>{label}</span>
-    </button>
-  );
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="block"><span className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-zinc-500">{label}</span>{children}</label>;
+}
+
+function TypeButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof Paintbrush; label: string }) {
+  return <button onClick={onClick} className={`flex flex-col items-center justify-center rounded-[24px] border p-4 text-xs font-black transition ${active ? 'border-green-500 bg-green-500 text-black' : 'border-white/5 bg-zinc-900 text-zinc-400 hover:border-white/15'}`}><Icon className="mb-2 h-5 w-5" />{label}</button>;
 }

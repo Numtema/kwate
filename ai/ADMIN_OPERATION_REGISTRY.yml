@@ -1,0 +1,64 @@
+operations:
+  admin.database.tables.list:
+    method: "GET"
+    path: "/api/database/tables"
+    risk: "low"
+    actor: "project_admin"
+    requires_approval: false
+    writes_schema: false
+
+  admin.database.table.create:
+    method: "POST"
+    path: "/api/database/tables"
+    risk: "high"
+    actor: "project_admin"
+    requires_approval: true
+    writes_schema: true
+    requires_docs_update: true
+    requires_audit_log: true
+
+  admin.database.schema.update:
+    method: "PATCH"
+    path: "/api/database/tables/{tableName}/schema"
+    risk: "high"
+    actor: "project_admin"
+    requires_approval: true
+    writes_schema: true
+    preferred_mode: "migration_first"
+
+  admin.database.migration.execute:
+    method: "POST"
+    path: "/api/database/migrations"
+    risk: "critical"
+    actor: "project_owner"
+    requires_approval: true
+    requires_backup: true
+    writes_schema: true
+    requires_audit_log: true
+
+  admin.post.block:
+    method: "server_action"
+    risk: "high"
+    actor: "admin"
+    requires_approval: false
+    writes_data: true
+    requires_reason: true
+    requires_audit_log: true
+
+  admin.user.block:
+    method: "server_action"
+    risk: "critical"
+    actor: "project_admin"
+    requires_approval: true
+    writes_data: true
+    requires_reason: true
+    requires_audit_log: true
+
+  admin.secret.create:
+    method: "POST"
+    path: "/api/secrets"
+    risk: "critical"
+    actor: "project_owner"
+    requires_approval: true
+    requires_audit_log: true
+    log_secret_value: false

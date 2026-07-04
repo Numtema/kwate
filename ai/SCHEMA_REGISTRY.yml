@@ -1,0 +1,51 @@
+version: "1.0"
+schema: public
+source: "insforge/migrations/001_kwate_core_schema.sql"
+
+tables:
+  profiles:
+    owner: "identity-core"
+    primary_owner_column: "user_id"
+    public_projection: "public_profiles"
+    pii:
+      - phone
+    soft_delete: true
+
+  categories:
+    owner: "catalog-core"
+    primary_owner_column: null
+    public_read: "enabled_only"
+    soft_delete: false
+
+  posts:
+    owner: "marketplace-core"
+    primary_owner_column: "owner_id"
+    soft_delete: true
+    statuses:
+      - draft
+      - active
+      - paused
+      - sold
+      - blocked
+      - deleted
+
+  post_media:
+    owner: "media-core"
+    primary_owner_column: "owner_id"
+    storage_bucket: "public-post-media"
+    soft_delete: false
+
+  audit_events:
+    owner: "platform-security"
+    primary_owner_column: null
+    append_only: true
+    client_access: false
+
+views:
+  public_profiles:
+    owner: "identity-core"
+    source_table: "profiles"
+    excludes:
+      - phone
+      - is_blocked
+      - deleted_at

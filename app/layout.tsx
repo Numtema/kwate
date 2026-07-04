@@ -1,11 +1,10 @@
 import type {Metadata} from 'next';
-import { Inter, Space_Grotesk } from "next/font/google";
 import './globals.css';
 import AppLayout from '@/components/AppLayout';
-import { MockProvider } from '@/components/MockProvider';
+import { AuthProvider } from '@/components/AuthProvider';
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const space = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'KWATE',
@@ -14,13 +13,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="fr" className={`${inter.variable} ${space.variable}`}>
+    <html lang="fr">
       <body className="bg-zinc-950 text-white selection:bg-green-500/30 font-sans" suppressHydrationWarning>
-        <MockProvider>
+        <AuthProvider>
           <AppLayout>
             {children}
           </AppLayout>
-        </MockProvider>
+        </AuthProvider>
       </body>
     </html>
   );

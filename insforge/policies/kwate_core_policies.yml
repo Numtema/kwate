@@ -1,0 +1,38 @@
+version: "1.0"
+source:
+  schema: "insforge/migrations/001_kwate_core_schema.sql"
+  rls: "insforge/rls/001_kwate_core_rls.sql"
+  seed: "insforge/seeds/001_kwate_categories.sql"
+
+policies:
+  profiles:
+    public_surface: "public_profiles view only"
+    select: "owner_only"
+    insert: "owner_only"
+    update: "owner_only_non_blocked"
+    delete: "server_only"
+    private_columns:
+      - phone
+      - is_blocked
+      - deleted_at
+
+  categories:
+    select: "enabled_only"
+    write: "admin_only"
+
+  posts:
+    select: "active_public_or_owner"
+    insert: "owner_only"
+    update: "owner_only_non_blocked"
+    delete: "soft_delete_only"
+
+  post_media:
+    select: "active_post_public_or_owner"
+    insert: "owner_of_target_post"
+    delete: "owner_of_target_post"
+
+  audit_events:
+    select: "admin_only"
+    insert: "server_only"
+    update: "forbidden"
+    delete: "forbidden"

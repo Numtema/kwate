@@ -1,0 +1,87 @@
+tables:
+  profiles:
+    owner: "identity-core"
+    risk: "high"
+    pii: true
+    rls_required: true
+    soft_delete: true
+    public_projection: "public_profiles"
+
+  categories:
+    owner: "marketplace-core"
+    risk: "low"
+    pii: false
+    rls_required: true
+    admin_managed: true
+
+  posts:
+    owner: "marketplace-core"
+    risk: "high"
+    pii: false
+    rls_required: true
+    soft_delete: true
+
+  post_media:
+    owner: "media-core"
+    risk: "high"
+    pii: false
+    rls_required: true
+    storage_backed: true
+
+  saved_posts:
+    owner: "marketplace-core"
+    risk: "medium"
+    pii: false
+    rls_required: true
+
+  contact_unlocks:
+    owner: "marketplace-core"
+    risk: "high"
+    pii: true
+    rls_required: true
+    audit_required: true
+
+  conversations:
+    owner: "conversation-core"
+    risk: "high"
+    pii: true
+    rls_required: true
+
+  messages:
+    owner: "conversation-core"
+    risk: "high"
+    pii: true
+    rls_required: true
+
+  passes:
+    owner: "billing-core"
+    risk: "critical"
+    pii: true
+    rls_required: true
+    system_write_only: true
+
+  payment_sessions:
+    owner: "billing-core"
+    risk: "critical"
+    pii: true
+    rls_required: true
+    system_write_only: true
+
+  reports:
+    owner: "trust-safety-core"
+    risk: "high"
+    pii: true
+    rls_required: true
+
+  audit_events:
+    owner: "security-core"
+    risk: "critical"
+    pii: true
+    rls_required: true
+    append_only: true
+
+  analytics_events:
+    owner: "product-analytics"
+    risk: "medium"
+    pii: false
+    rls_required: true

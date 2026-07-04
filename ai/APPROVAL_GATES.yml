@@ -1,0 +1,29 @@
+approval_gates:
+  high:
+    required:
+      - product_need_defined
+      - impacted_tables_listed
+      - permission_impact_checked
+      - rollback_plan_written
+      - audit_event_declared
+      - tests_declared
+
+  critical:
+    required:
+      - product_need_defined
+      - impacted_tables_listed
+      - production_environment_confirmed
+      - backup_or_restore_plan_written
+      - rollback_plan_written
+      - rls_reviewed
+      - secrets_not_logged
+      - audit_event_declared
+      - docs_and_registries_updated
+      - explicit_human_approval
+
+blocked_if:
+  - admin_key_in_client
+  - hard_delete_without_approval
+  - schema_change_without_docs
+  - payment_webhook_without_signature_validation
+  - secret_value_logged

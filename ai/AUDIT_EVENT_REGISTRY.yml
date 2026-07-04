@@ -1,0 +1,81 @@
+events:
+  auth.signup:
+    severity: "info"
+    entity: "profile"
+    pii_allowed: false
+
+  auth.login:
+    severity: "info"
+    entity: "session"
+    pii_allowed: false
+
+  auth.logout:
+    severity: "info"
+    entity: "session"
+    pii_allowed: false
+
+  post.created:
+    severity: "info"
+    entity: "post"
+    pii_allowed: false
+
+  post.updated:
+    severity: "info"
+    entity: "post"
+    pii_allowed: false
+
+  post.deleted_soft:
+    severity: "warning"
+    entity: "post"
+    pii_allowed: false
+
+  contact.unlocked:
+    severity: "high"
+    entity: "post"
+    pii_allowed: true
+
+  pass.checkout_started:
+    severity: "info"
+    entity: "payment_session"
+    pii_allowed: false
+
+  payment.webhook_received:
+    severity: "high"
+    entity: "payment_session"
+    pii_allowed: false
+
+  pass.activated:
+    severity: "high"
+    entity: "pass"
+    pii_allowed: false
+
+  message.sent:
+    severity: "info"
+    entity: "message"
+    pii_allowed: false
+    note: "Do not store raw message body in audit metadata."
+
+  report.created:
+    severity: "warning"
+    entity: "report"
+    pii_allowed: true
+
+  admin.post_blocked:
+    severity: "high"
+    entity: "post"
+    pii_allowed: false
+
+  admin.user_blocked:
+    severity: "critical"
+    entity: "user"
+    pii_allowed: true
+
+forbidden_metadata:
+  - password
+  - accessToken
+  - refreshToken
+  - adminToken
+  - apiKey
+  - stripeSecret
+  - webhookSecret
+  - fullCardData

@@ -1,15 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Search, MessageCircle, User, Plus, Compass, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
+import { useAuth } from "@/components/AuthProvider";
+import { AuthConfigurationError, AuthLoadingScreen } from "@/components/AuthRouteState";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hideLayout = pathname === "/publish" || ['/login', '/signup', '/forgot-password', '/welcome'].includes(pathname);
+  const router = useRouter();
+  const { status, configurationError } = useAuth();
+  const authPages = ['/login', '/signup', '/forgot-password', '/verify-email', '/reset-password', '/welcome'];
+  const protectedRoutes = ['/profile', '/settings', '/messages', '/publish'];
+  const hideLayout = pathname === "/publish" || authPages.includes(pathname);
+  const requiresAuth = protectedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (requiresAuth && status === 'anonymous') {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    }
+  }, [requiresAuth, status, pathname, router]);
+
+  if (requiresAuth && status === 'configuration_error') {
+    return <AuthConfigurationError message={configurationError ?? 'Configuration InsForge manquante.'} />;
+  }
+
+  if (requiresAuth && (status === 'loading' || status === 'anonymous')) {
+    return <AuthLoadingScreen />;
+  }
 
   if (hideLayout) {
     return (
@@ -46,7 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 space-y-4 px-4 flex flex-col items-center md:items-start">
             <DesktopNavItem href="/" icon={Home} label="Accueil" active={pathname === "/"} isExpanded={isExpanded} />
             <DesktopNavItem href="/search" icon={Search} label="Recherche" active={pathname === "/search"} isExpanded={isExpanded} />
-            <DesktopNavItem href="/messages" icon={MessageCircle} label="Messages" active={pathname === "/messages"} badge="2" isExpanded={isExpanded} />
+            <DesktopNavItem href="/messages" icon={MessageCircle} label="Messages" active={pathname.startsWith("/messages")} isExpanded={isExpanded} />
             <DesktopNavItem href="/profile" icon={User} label="Profil" active={pathname === "/profile"} isExpanded={isExpanded} />
           </nav>
 
@@ -119,7 +140,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Plus className="w-7 h-7 stroke-[3px]" />
             </Link>
 
-            <MobileNavItem href="/messages" icon={MessageCircle} active={pathname === "/messages"} badge="2" />
+            <MobileNavItem href="/messages" icon={MessageCircle} active={pathname.startsWith("/messages")} />
             <MobileNavItem href="/profile" icon={User} active={pathname === "/profile"} />
           </nav>
         </div>

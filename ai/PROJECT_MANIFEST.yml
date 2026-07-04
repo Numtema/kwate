@@ -1,0 +1,19 @@
+project:
+  name: "KWATE"
+  type: "insforge-nextjs-typescript-marketplace"
+  stage: "fullstack-vercel-ready"
+  backend: "insforge"
+  frontend: "nextjs"
+  language: "typescript"
+  current_state: "real_runtime_configured_remote_credentials_required"
+principles:
+  - "No runtime mocks"
+  - "Every mutation has validation and RLS"
+  - "Admin and Stripe secrets are server-only"
+  - "Payment rights come from verified webhooks"
+source_of_truth:
+  operations: "AGENTS.md"
+  product: "docs/00_PROJECT_BRIEF.md"
+  database: "docs/05_DATABASE_SCHEMA.md"
+  permissions: "docs/06_RLS_AND_PERMISSIONS.md"
+  runtime: "ai/STEP5_RUNTIME_REGISTRY.yml"

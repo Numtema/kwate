@@ -1,95 +1,79 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { ArrowLeft, AlertOctagon, Trash2, Key, Bell, Shield, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Loader2, LogOut, Save, ShieldAlert } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
+import { getMyProfile, updateMyProfile } from '@/features/profiles/repository';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { user, signOut, refreshUser } = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [zone, setZone] = useState('');
+  const [phone, setPhone] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user) return;
+    void getMyProfile(user.id).then((profile) => {
+      setDisplayName(profile?.display_name ?? user.name ?? '');
+      setZone(profile?.zone ?? '');
+      setPhone(profile?.phone ?? '');
+      setBio(profile?.bio ?? '');
+      setAvatarUrl(profile?.avatar_url ?? '');
+    }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Profil indisponible.')).finally(() => setLoading(false));
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await updateMyProfile(user.id, { displayName, zone: zone || null, phone: phone || null, bio: bio || null, avatarUrl: avatarUrl || null });
+      await refreshUser();
+      setMessage('Profil enregistré.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Enregistrement impossible.');
+    } finally { setSaving(false); }
+  };
 
   return (
-    <div className="flex flex-col min-h-full relative">
-      <header className="px-6 py-4 pt-8 sticky top-0 bg-zinc-950/80 backdrop-blur-xl z-20 flex items-center gap-4 border-b border-white/5">
-        <button onClick={() => router.back()} className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white hover:bg-zinc-800 transition-colors shadow-sm bg-zinc-900 shrink-0">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-2xl font-space font-black text-white tracking-tighter">Paramètres</h1>
+    <div className="min-h-full pb-10">
+      <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-white/5 bg-zinc-950/90 px-5 py-5 backdrop-blur-xl">
+        <button onClick={() => router.back()} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-zinc-900"><ArrowLeft className="h-5 w-5" /></button>
+        <div><p className="text-[10px] font-bold uppercase tracking-widest text-green-500">Compte</p><h1 className="font-space text-2xl font-black">Paramètres</h1></div>
       </header>
+      <main className="space-y-6 px-5 py-7">
+        {loading ? <div className="h-96 animate-pulse rounded-[36px] bg-zinc-900" /> : (
+          <section className="space-y-5 rounded-[36px] border border-white/5 bg-zinc-900 p-6">
+            <Field label="Nom affiché"><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="input" /></Field>
+            <Field label="Zone"><input value={zone} onChange={(event) => setZone(event.target.value)} placeholder="Ville · Quartier" className="input" /></Field>
+            <Field label="Téléphone"><input value={phone} onChange={(event) => setPhone(event.target.value)} type="tel" placeholder="+237…" className="input" /></Field>
+            <Field label="Biographie"><textarea value={bio} onChange={(event) => setBio(event.target.value)} rows={4} className="input resize-none" /></Field>
+            <Field label="URL de l’avatar"><input value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} type="url" placeholder="https://…" className="input" /></Field>
+            {message && <p className="rounded-2xl bg-green-500/10 p-4 text-sm font-bold text-green-300">{message}</p>}
+            {error && <p className="rounded-2xl bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</p>}
+            <button onClick={() => void save()} disabled={saving} className="flex w-full items-center justify-center rounded-full bg-green-500 py-4 font-black text-black disabled:opacity-50">{saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}Enregistrer</button>
+          </section>
+        )}
 
-      <main className="flex-1 p-4 space-y-4 pb-24">
-        <div className="bg-zinc-900 border border-white/5 rounded-[32px] p-2 relative z-10">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 blur-[40px] rounded-full pointer-events-none -z-10"></div>
-          <SettingItem icon={Key} title="Identifiants" />
-          <SettingItem icon={Bell} title="Notifications" />
-          <SettingItem icon={Shield} title="Confidentialité" />
-        </div>
-
-        <div className="bg-zinc-900 border border-white/5 rounded-[32px] p-2">
-          <div className="px-4 py-3">
-             <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest ml-2 mb-2">Zone Dangereuse</h3>
-          </div>
-          <button 
-            onClick={() => setShowDeleteConfirm(true)}
-            className="w-full flex items-center justify-between px-6 py-4 rounded-[24px] hover:bg-red-500/10 transition-colors group cursor-pointer border border-transparent hover:border-red-500/20"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-colors">
-                 <Trash2 className="w-5 h-5" />
-              </div>
-              <span className="text-[16px] font-space font-black tracking-tighter text-red-500">Supprimer mon compte</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-red-500/50 group-hover:text-red-500 transition-colors" />
-          </button>
-        </div>
+        <section className="overflow-hidden rounded-[30px] border border-white/5 bg-zinc-900">
+          <button onClick={() => void signOut()} className="flex w-full items-center justify-between px-6 py-5 text-red-300 hover:bg-red-500/5"><span className="flex items-center gap-3 font-bold"><LogOut className="h-5 w-5" />Se déconnecter</span></button>
+          <div className="border-t border-white/5 px-6 py-5 text-zinc-500"><p className="flex items-center gap-3 text-sm font-bold"><ShieldAlert className="h-5 w-5" />Suppression du compte</p><p className="mt-2 text-xs leading-relaxed">Cette action doit être exécutée par un workflow serveur approuvé. Elle n’est pas simulée côté navigateur.</p></div>
+        </section>
       </main>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-           <div className="bg-zinc-900 border border-white/10 rounded-[32px] p-6 max-w-sm w-full shadow-2xl">
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                 <AlertOctagon className="w-8 h-8 text-red-500" />
-              </div>
-              <h3 className="text-xl font-black text-white text-center mb-3">Supprimer le compte ?</h3>
-              <p className="text-[14px] text-zinc-400 text-center mb-6 font-medium leading-relaxed">
-                Cette action est irréversible. Toutes vos annonces, messages et données seront effacés. Les abonnements en cours ne sont pas remboursables.
-              </p>
-              
-              <div className="space-y-3">
-                <button 
-                  onClick={() => {
-                    // Logic to delete account
-                    router.push("/");
-                  }}
-                  className="w-full py-4 bg-red-500 text-black font-black text-[15px] rounded-full hover:bg-red-400 transition"
-                >
-                  Oui, supprimer définitivement
-                </button>
-                <button 
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="w-full py-4 bg-white/5 text-white font-bold text-[15px] rounded-full hover:bg-white/10 transition"
-                >
-                  Annuler
-                </button>
-              </div>
-           </div>
-        </div>
-      )}
+      <style jsx>{`.input{width:100%;border-radius:1.3rem;border:1px solid rgba(255,255,255,.08);background:#27272a;padding:1rem;color:white;font-weight:600;outline:none}.input:focus{border-color:#22c55e}`}</style>
     </div>
   );
 }
 
-function SettingItem({ icon: Icon, title }: any) {
-  return (
-    <button className="w-full flex items-center justify-between px-6 py-4 rounded-[24px] hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-white/10">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center group-hover:bg-white/10 group-hover:text-white transition-colors">
-           <Icon className="w-5 h-5" />
-        </div>
-        <span className="text-[18px] font-space font-black text-white tracking-tighter">{title}</span>
-      </div>
-      <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors" />
-    </button>
-  );
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="block"><span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</span>{children}</label>;
 }

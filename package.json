@@ -1,27 +1,37 @@
 {
-  "name": "ai-studio-applet",
-  "version": "0.1.0",
+  "name": "kwate-insforge",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "clean": "next clean"
+    "clean": "next clean",
+    "audit:step3": "node scripts/audit-step3.mjs",
+    "migration:payload": "node scripts/build-migration-payload.mjs",
+    "audit:step4": "node scripts/audit-step4.mjs",
+    "build:verify": "NEXT_DISABLE_STANDALONE=true next build",
+    "typecheck": "tsc --noEmit",
+    "audit:step5": "node scripts/audit-step5.mjs",
+    "insforge:provision": "node --env-file=.env.local scripts/provision-insforge.mjs",
+    "build:vercel": "next build",
+    "verify": "npm run audit:step3 && npm run audit:step4 && npm run audit:step5 && npm run typecheck && npm run lint && npm audit --omit=dev && VERCEL=1 npm run build:vercel"
   },
   "dependencies": {
-    "@google/genai": "^1.17.0",
-    "@hookform/resolvers": "^5.2.1",
+    "@insforge/sdk": "^1.4.3",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
-    "next": "^15.4.9",
-    "postcss": "^8.5.6",
+    "next": "15.5.20",
+    "postcss": "8.5.16",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-    "tailwind-merge": "^3.3.1"
+    "stripe": "^18.5.0",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.11",
@@ -29,11 +39,16 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "9.39.1",
-    "eslint-config-next": "16.0.8",
-    "firebase-tools": "^15.0.0",
+    "eslint": "8.57.1",
+    "eslint-config-next": "15.5.20",
     "tailwindcss": "4.1.11",
     "tw-animate-css": "^1.4.0",
     "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   }
 }

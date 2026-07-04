@@ -1,0 +1,52 @@
+version: 1
+stage: step-4
+owner: auth-core
+sdk: "@insforge/sdk"
+
+runtime_files:
+  client: lib/insforge/sdk-browser.ts
+  operations: lib/insforge/auth-client.ts
+  types: lib/insforge/auth-types.ts
+  provider: components/AuthProvider.tsx
+  validation: features/auth/schema.ts
+  errors: features/auth/errors.ts
+  adapter: features/auth/adapters.ts
+  profile_bootstrap: features/auth/profile-bootstrap.ts
+
+routes:
+  public:
+    - /login
+    - /signup
+    - /forgot-password
+    - /reset-password
+    - /verify-email
+  protected:
+    - /profile
+    - /settings
+    - /messages
+    - /publish
+
+implemented_operations:
+  - auth.public_config.get
+  - auth.register
+  - auth.login
+  - auth.current_user.get
+  - auth.logout
+  - auth.email_verification.send
+  - auth.email_verification.verify_code
+  - auth.password_reset.send
+  - auth.password_reset.exchange_code
+  - auth.password_reset.reset
+
+security:
+  access_token_storage: sdk_memory
+  refresh_token_storage: insforge_http_only_cookie
+  local_storage_tokens: forbidden
+  admin_key_in_browser: forbidden
+  data_boundary: rls
+
+not_implemented:
+  - oauth_pkce
+  - server_middleware_session
+  - account_deletion
+  - profile_edit_persistence

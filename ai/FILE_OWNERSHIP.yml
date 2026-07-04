@@ -1,0 +1,25 @@
+ownership:
+  "lib/insforge/**":
+    owner: "backend-core"
+    risk: "high"
+    requires_review: true
+  "features/**":
+    owner: "feature-runtime"
+    risk: "medium"
+    requires_review: true
+  "app/api/**":
+    owner: "server-runtime"
+    risk: "high"
+    requires_review: true
+  "insforge/migrations/**":
+    owner: "database-core"
+    risk: "critical"
+    requires_review: true
+  "insforge/rls/**":
+    owner: "security-core"
+    risk: "critical"
+    requires_review: true
+  "docs/**":
+    owner: "product-system"
+    risk: "low"
+    requires_review: false

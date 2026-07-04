@@ -1,133 +1,90 @@
-"use client";
+/* eslint-disable @next/next/no-img-element */
+'use client';
 
-import React from "react";
-import Link from "next/link";
-import { User, Star, Settings, ShieldCheck, LayoutList, CreditCard, LogOut, ArrowRight, ArrowUpRight, Copy, TicketPercent, Share, ScanLine, BookOpen } from "lucide-react";
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { ChevronRight, Loader2, LogOut, Pencil, Settings, ShieldCheck, Trash2, User } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { PostCard } from '@/components/posts/PostCard';
+import { getMyProfile } from '@/features/profiles/repository';
+import type { ProfileRecord } from '@/features/profiles/types';
+import { listPosts, softDeletePost } from '@/features/posts/repository';
+import type { PostView } from '@/features/posts/types';
 
 export default function ProfilePage() {
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<ProfileRecord | null>(null);
+  const [posts, setPosts] = useState<PostView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [busyId, setBusyId] = useState('');
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    try {
+      const [loadedProfile, loadedPosts] = await Promise.all([getMyProfile(user.id), listPosts({ ownerId: user.id, limit: 100 })]);
+      setProfile(loadedProfile);
+      setPosts(loadedPosts.filter((post) => post.status !== 'deleted'));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Profil indisponible.');
+    } finally { setLoading(false); }
+  }, [user]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const remove = async (postId: string) => {
+    if (!user || !window.confirm('Supprimer cette annonce ?')) return;
+    setBusyId(postId);
+    try {
+      await softDeletePost(user.id, postId);
+      setPosts((current) => current.filter((post) => post.id !== postId));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Suppression impossible.');
+    } finally { setBusyId(''); }
+  };
+
+  if (loading) return <div className="p-5"><div className="h-[500px] animate-pulse rounded-[38px] bg-zinc-900" /></div>;
+
   return (
-    <div className="flex flex-col min-h-full">
-      <header className="px-6 py-4 pt-8 sticky top-0 bg-zinc-950/80 backdrop-blur-xl z-20 flex items-center justify-between border-b border-white/5">
-        <h1 className="text-2xl font-space font-black text-white tracking-tighter">Profil</h1>
-        <Link href="/settings" className="w-12 h-12 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-white hover:bg-zinc-800 transition shadow-sm">
-          <Settings className="w-5 h-5" />
-        </Link>
-      </header>
-
-      <main className="p-4 space-y-6 mt-2 relative">
-         {/* Identity Card like the reference image */}
-         <div className="bg-green-500 rounded-[40px] p-7 pb-8 shadow-xl shadow-green-500/10 text-black relative overflow-hidden z-10 w-full max-w-md mx-auto aspect-[4/5] flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-white/30 blur-[80px] rounded-full pointer-events-none -mt-32 -mr-32"></div>
-            
-            <div>
-               <div className="flex items-start justify-between mb-8 relative z-10">
-                  <div>
-                     <h2 className="text-[40px] font-space font-black leading-[1.0] mb-2 tracking-tighter">Samuel<br/>Eto&apos;o</h2>
-                     <p className="text-[13px] font-bold opacity-60 flex items-center tracking-wide">
-                       27 Fév 1987 <span className="mx-2">•</span> 12:14:24 (2 yr)
-                     </p>
-                  </div>
-                  <div className="w-24 h-24 rounded-full overflow-hidden bg-black/5 border-[3px] border-black/10 shrink-0">
-                     <img src="https://picsum.photos/seed/samuel/200/200" alt="Avatar" className="w-full h-full object-cover grayscale mix-blend-multiply opacity-80" />
-                  </div>
-               </div>
+    <div className="min-h-full pb-8">
+      <header className="px-5 pb-4 pt-8"><h1 className="font-space text-3xl font-black tracking-tighter">Mon profil</h1></header>
+      <main className="space-y-6 px-5">
+        {error && <p className="rounded-2xl bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</p>}
+        <section className="rounded-[38px] border border-white/5 bg-zinc-900 p-7">
+          <div className="flex items-center gap-4">
+            {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-full object-cover" /> : <User className="h-20 w-20 rounded-full bg-white/5 p-5 text-zinc-500" />}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2"><h2 className="truncate font-space text-2xl font-black">{profile?.display_name ?? user?.name ?? user?.email}</h2>{profile?.phone_verified && <ShieldCheck className="h-5 w-5 text-green-400" />}</div>
+              <p className="mt-1 text-sm font-medium text-zinc-500">{profile?.zone || 'Zone non renseignée'}</p>
+              {profile?.bio && <p className="mt-3 line-clamp-3 text-sm text-zinc-300">{profile.bio}</p>}
             </div>
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+            <Stat value={posts.length} label="Annonces" />
+            <Stat value={profile?.rating_average ?? '—'} label="Note" />
+            <Stat value={profile?.rating_count ?? 0} label="Avis" />
+          </div>
+        </section>
 
-            <div className="bg-zinc-950 rounded-[32px] p-6 relative z-10 shadow-inner mt-4 border border-black/10 flex-1 flex flex-col justify-end text-white">
-               <div className="absolute -top-6 right-6 flex gap-2">
-                 <button className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-xl hover:bg-zinc-200 transition"><Copy className="w-5 h-5"/></button>
-                 <button className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-xl hover:bg-zinc-200 transition"><Share className="w-5 h-5"/></button>
-               </div>
-               
-               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-5">Données d&apos;identité</p>
-               
-               <div className="flex gap-5 items-center">
-                  <div className="w-[90px] h-[90px] bg-white/5 rounded-2xl flex items-center justify-center shrink-0 border border-white/10 p-2.5 relative group cursor-pointer overflow-hidden">
-                     {/* Fake QR code using grid */}
-                     <div className="w-full h-full grid grid-cols-5 gap-0.5 opacity-80 group-hover:opacity-100 transition">
-                       {Array.from({length: 25}).map((_, i) => (
-                         <div key={i} className={`bg-green-500 rounded-[2px] ${i%4===0 || i%7===0 ? 'opacity-0' : 'opacity-100'}`} />
-                       ))}
-                     </div>
-                  </div>
-                  
-                  <div className="flex flex-col justify-center space-y-4">
-                     <div>
-                        <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-0.5">ID Numéro</p>
-                        <p className="text-[17px] font-space font-black tracking-tighter text-white">311097152 <span className="text-green-500 opacity-60">X01</span></p>
-                     </div>
-                     <div>
-                        <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-0.5">Résidence</p>
-                        <p className="text-[15px] font-bold text-zinc-300 tracking-tight">Douala, Makepe</p>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         </div>
+        <section className="overflow-hidden rounded-[30px] border border-white/5 bg-zinc-900">
+          <Link href="/settings" className="flex items-center justify-between px-6 py-5 hover:bg-white/5"><span className="flex items-center gap-3 font-bold"><Settings className="h-5 w-5 text-green-400" />Modifier mon profil</span><ChevronRight className="h-5 w-5 text-zinc-500" /></Link>
+          <Link href="/pass" className="flex items-center justify-between border-t border-white/5 px-6 py-5 hover:bg-white/5"><span className="flex items-center gap-3 font-bold"><ShieldCheck className="h-5 w-5 text-green-400" />Mes pass et contacts</span><ChevronRight className="h-5 w-5 text-zinc-500" /></Link>
+          <button onClick={() => void signOut()} className="flex w-full items-center justify-between border-t border-white/5 px-6 py-5 text-red-300 hover:bg-red-500/5"><span className="flex items-center gap-3 font-bold"><LogOut className="h-5 w-5" />Se déconnecter</span><ChevronRight className="h-5 w-5" /></button>
+        </section>
 
-         {/* Stats/Limits */}
-         <div className="grid grid-cols-2 gap-4 w-full max-w-md mx-auto">
-            <div className="bg-zinc-900 border border-white/5 rounded-[32px] p-5 flex flex-col justify-between items-start hover:border-white/10 transition">
-               <div>
-                 <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center"><Star className="w-3.5 h-3.5 mr-1.5"/> Avis (24)</p>
-                 <p className="text-3xl font-black text-white tracking-tighter">
-                    4.9
-                 </p>
-               </div>
-               <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mt-4 text-white hover:bg-white/10 transition"><ArrowUpRight className="w-4 h-4"/></button>
-            </div>
-            
-            <div className="bg-zinc-900 border border-white/5 rounded-[32px] p-5 flex flex-col justify-between items-start hover:border-white/10 transition">
-               <div className="w-full">
-                 <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center"><TicketPercent className="w-3.5 h-3.5 mr-1.5"/> Forfait Pro</p>
-                 <div className="flex items-center justify-between w-full">
-                   <p className="text-lg font-black text-red-500 tracking-tight">Expiré</p>
-                   <span className="text-xs font-bold text-white bg-red-500/20 px-2 py-1 rounded-md">0j</span>
-                 </div>
-               </div>
-               <Link href="/pass" className="w-full py-3 bg-green-500/10 text-green-500 font-black text-[13px] rounded-full mt-4 hover:bg-green-500/20 transition tracking-wide text-center">Renouveler</Link>
-            </div>
-         </div>
-
-         {/* Menu List */}
-         <div className="bg-zinc-900 border border-white/5 rounded-[32px] overflow-hidden w-full max-w-md mx-auto mb-6">
-            <MenuItem href="/how-it-works" icon={BookOpen} title="Comment ça marche" />
-            <MenuItem href="#" icon={LayoutList} title="Mes annonces" count={3} />
-            <MenuItem href="#" icon={CreditCard} title="Transactions" />
-            <MenuItem href="#" icon={ShieldCheck} title="Vérification" badge="Validé" />
-            <div className="h-px bg-white/5 mx-6 my-2"></div>
-            <MenuItem href="/" icon={LogOut} title="Se déconnecter" textDanger borderNone/>
-         </div>
-         
+        <section>
+          <div className="mb-4 flex items-center justify-between"><h2 className="font-space text-xl font-black">Mes annonces</h2><Link href="/publish" className="rounded-full bg-green-500 px-4 py-2 text-xs font-black text-black">Publier</Link></div>
+          {posts.length === 0 ? <div className="rounded-[28px] border border-white/5 bg-zinc-900 p-7 text-center text-sm text-zinc-400">Vous n’avez pas encore publié d’annonce.</div> : (
+            <div className="space-y-4">{posts.map((post) => <div key={post.id} className="relative"><PostCard post={post} compact /><div className="absolute bottom-4 right-4 flex gap-2"><Link href={`/publish?edit=${post.id}`} aria-label="Modifier l’annonce" className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-950/75 text-green-300 backdrop-blur"><Pencil className="h-4 w-4" /></Link><button onClick={() => void remove(post.id)} aria-label="Supprimer l’annonce" disabled={busyId === post.id} className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/15 text-red-300 backdrop-blur">{busyId === post.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</button></div></div>)}</div>
+          )}
+        </section>
       </main>
     </div>
   );
 }
 
-function MenuItem({ href, icon: Icon, title, count, badge, textDanger, borderNone }: any) {
-  return (
-    <Link href={href || "#"} className={`w-full flex items-center justify-between px-6 py-5 hover:bg-white/5 transition-colors group cursor-pointer`}>
-      <div className="flex items-center gap-4">
-        <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${textDanger ? 'bg-red-500/10 text-red-500 group-hover:bg-red-500/20' : 'bg-zinc-800 text-zinc-300 group-hover:bg-white/10 group-hover:text-white'}`}>
-           <Icon className="w-5 h-5" />
-        </div>
-        <span className={`text-[16px] font-bold tracking-tight ${textDanger ? 'text-red-500' : 'text-white'}`}>
-          {title}
-        </span>
-      </div>
-      <div className="flex items-center gap-3">
-        {count !== undefined && (
-          <span className="w-8 h-8 bg-green-500 text-black rounded-full flex items-center justify-center text-[13px] font-black">
-            {count}
-          </span>
-        )}
-        {badge && (
-          <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-md text-[10px] uppercase font-black tracking-wider">
-            {badge}
-          </span>
-        )}
-        <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors" />
-      </div>
-    </Link>
-  );
+function Stat({ value, label }: { value: string | number; label: string }) {
+  return <div className="rounded-[22px] bg-zinc-800 p-4"><p className="font-space text-xl font-black text-white">{value}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p></div>;
 }

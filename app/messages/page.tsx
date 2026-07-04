@@ -1,83 +1,40 @@
-"use client";
+/* eslint-disable @next/next/no-img-element */
+'use client';
 
-import React from "react";
-import { Search, MoreVertical, User, Compass, CheckCheck } from "lucide-react";
-
-const MOCK_CHATS = [
-  {
-    id: 1,
-    name: "Mado N.",
-    service: "Échange plantain contre huile",
-    lastMsg: "Ok je t'attends pour l'huile. Tu passes vers quelle heure ?",
-    time: "10:42",
-    unread: 2,
-    isPro: false,
-  },
-  {
-    id: 2,
-    name: "Alex D.",
-    service: "Portraits au crayon",
-    lastMsg: "Je suis dispo demain pour commencer la toile.",
-    time: "Hier",
-    unread: 0,
-    isPro: true,
-  },
-  {
-    id: 3,
-    name: "Junior M.",
-    service: "Peinture, revêtement...",
-    lastMsg: "Le prix dépend de la surface chef. On peut se voir ?",
-    time: "Lun",
-    unread: 0,
-    isPro: true,
-  }
-];
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { MessageCircle, User } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { listConversations } from '@/features/messages/repository';
+import type { ConversationListItem } from '@/features/messages/types';
 
 export default function MessagesPage() {
+  const { user } = useAuth();
+  const [items, setItems] = useState<ConversationListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    try { setItems(await listConversations(user.id)); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Messagerie indisponible.'); } finally { setLoading(false); }
+  }, [user]);
+
+  useEffect(() => { void load(); }, [load]);
+
   return (
-    <div className="flex flex-col min-h-full">
-      <header className="px-6 py-4 pt-8 flex items-center justify-between sticky top-0 bg-zinc-950/80 backdrop-blur-xl z-10 border-b border-white/5">
-        <h1 className="text-3xl font-space font-black text-white tracking-tighter">Messages</h1>
-        <button className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:bg-zinc-900 border border-transparent hover:border-white/10 transition">
-          <MoreVertical className="w-5 h-5" />
-        </button>
-      </header>
-
-      <main className="flex-1 p-4 space-y-3 mt-2 relative z-10">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 blur-[80px] rounded-full pointer-events-none -z-10"></div>
-        {MOCK_CHATS.map((chat) => (
-          <div key={chat.id} className="bg-zinc-900 border border-white/5 rounded-[32px] p-4 flex items-center gap-4 hover:bg-zinc-800 transition-colors cursor-pointer active:scale-[0.98]">
-            <div className="relative shrink-0">
-              <div className="w-14 h-14 bg-zinc-950 border border-white/10 rounded-full flex items-center justify-center overflow-hidden">
-                <User className="w-6 h-6 text-zinc-600" />
-              </div>
-              {chat.isPro && (
-                <span className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-zinc-900 w-4 h-4 rounded-full flex items-center justify-center" title="Pro">
-                </span>
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0 pr-1">
-              <div className="flex items-center justify-between mb-0.5">
-                <h3 className="text-[16px] font-black tracking-tight text-white truncate pr-2">{chat.name}</h3>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${chat.unread > 0 ? 'text-green-500' : 'text-zinc-500'}`}>
-                  {chat.time}
-                </span>
-              </div>
-              <p className="text-[12px] font-bold text-zinc-500 mb-1.5 truncate tracking-wide">{chat.service}</p>
-              <div className="flex items-start justify-between">
-                <p className={`text-[14px] leading-tight truncate pr-4 ${chat.unread > 0 ? 'text-white font-bold' : 'text-zinc-400 font-medium'}`}>
-                  {chat.unread === 0 && <CheckCheck className="w-4 h-4 inline mr-1 text-green-500"/>}
-                  {chat.lastMsg}
-                </p>
-                {chat.unread > 0 && (
-                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-[11px] font-black text-black shrink-0 mt-0.5">
-                    {chat.unread}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="min-h-full pb-8">
+      <header className="sticky top-0 z-20 border-b border-white/5 bg-zinc-950/90 px-6 pb-5 pt-8 backdrop-blur-xl"><h1 className="font-space text-3xl font-black tracking-tighter">Messages</h1></header>
+      <main className="space-y-3 px-5 py-6">
+        {loading && Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-[26px] bg-zinc-900" />)}
+        {error && <div className="rounded-[28px] bg-red-500/10 p-5 text-sm font-bold text-red-300">{error}</div>}
+        {!loading && !error && items.length === 0 && <div className="rounded-[34px] border border-white/5 bg-zinc-900 p-10 text-center"><MessageCircle className="mx-auto h-10 w-10 text-zinc-600" /><h2 className="mt-4 font-space text-xl font-black">Aucune conversation</h2><p className="mt-2 text-sm text-zinc-500">Ouvrez une annonce puis écrivez au vendeur.</p></div>}
+        {!loading && items.map((item) => (
+          <Link key={item.id} href={`/messages/${item.id}`} className="flex items-center gap-4 rounded-[28px] border border-white/5 bg-zinc-900 p-4 transition hover:border-white/15">
+            {item.counterpartAvatar ? <img src={item.counterpartAvatar} alt="" className="h-14 w-14 rounded-full object-cover" /> : <User className="h-14 w-14 rounded-full bg-white/5 p-3 text-zinc-500" />}
+            <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><h2 className="truncate font-black">{item.counterpartName}</h2>{item.unreadCount > 0 && <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-green-500 px-2 text-[10px] font-black text-black">{item.unreadCount}</span>}</div><p className="mt-1 truncate text-xs font-semibold text-green-400">{item.post?.title || 'Conversation KWATE'}</p><p className="mt-1 truncate text-sm text-zinc-500">{item.lastMessage || 'Démarrez la conversation'}</p></div>
+          </Link>
         ))}
       </main>
     </div>

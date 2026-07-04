@@ -1,0 +1,90 @@
+features:
+  auth:
+    owner: "identity-core"
+    route_prefixes:
+      - "/login"
+      - "/signup"
+      - "/forgot-password"
+    tables:
+      - profiles
+      - audit_events
+    actions:
+      - auth.signup
+      - auth.login
+      - auth.logout
+      - auth.password_reset.request
+    risk: "high"
+
+  posts:
+    owner: "marketplace-core"
+    route_prefixes:
+      - "/"
+      - "/search"
+      - "/post"
+      - "/publish"
+    tables:
+      - posts
+      - post_media
+      - categories
+      - saved_posts
+      - audit_events
+    actions:
+      - post.list
+      - post.get
+      - post.create
+      - post.update
+      - post.delete_soft
+    risk: "high"
+
+  contact:
+    owner: "marketplace-core"
+    route_prefixes:
+      - "/post"
+    tables:
+      - contact_unlocks
+      - passes
+      - audit_events
+    actions:
+      - contact.unlock
+    risk: "high"
+
+  messages:
+    owner: "conversation-core"
+    route_prefixes:
+      - "/messages"
+    tables:
+      - conversations
+      - messages
+      - audit_events
+    actions:
+      - conversation.create
+      - message.send
+    risk: "high"
+
+  billing:
+    owner: "billing-core"
+    route_prefixes:
+      - "/pass"
+    tables:
+      - payment_sessions
+      - passes
+      - audit_events
+    actions:
+      - pass.checkout_start
+      - pass.activate
+    risk: "critical"
+
+  moderation:
+    owner: "trust-safety-core"
+    route_prefixes:
+      - "/admin"
+    tables:
+      - reports
+      - posts
+      - profiles
+      - audit_events
+    actions:
+      - report.create
+      - admin.post.block
+      - admin.user.block
+    risk: "critical"
