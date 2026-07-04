@@ -16,7 +16,8 @@
     "audit:step5": "node scripts/audit-step5.mjs",
     "insforge:provision": "node --env-file=.env.local scripts/provision-insforge.mjs",
     "build:vercel": "next build",
-    "verify": "npm run audit:step3 && npm run audit:step4 && npm run audit:step5 && npm run typecheck && npm run lint && npm audit --omit=dev && VERCEL=1 npm run build:vercel"
+    "verify": "npm run audit:step3 && npm run audit:step4 && npm run audit:step5 && npm run typecheck && npm run lint && npm audit --omit=dev && VERCEL=1 npm run build:vercel",
+    "preflight": "npm run audit:step3 && npm run audit:step4 && npm run audit:step5 && npm run typecheck && npm run lint"
   },
   "dependencies": {
     "@insforge/sdk": "^1.4.3",
