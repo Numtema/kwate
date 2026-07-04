@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@insforge/cli": "0.1.96"
+  },
+  "_npx": {
+    "packages": [
+      "@insforge/cli"
+    ]
+  }
+}

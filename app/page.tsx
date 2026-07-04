@@ -1,10 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, MapPin, Paintbrush, Repeat2, ShoppingBasket } from 'lucide-react';
 import { PostCard } from '@/components/posts/PostCard';
+import { NotificationPanel } from '@/components/notifications/NotificationPanel';
 import { listPosts } from '@/features/posts/repository';
 import type { PostView } from '@/features/posts/types';
+import { useAuth } from '@/components/AuthProvider';
+import { useNotifications } from '@/hooks/use-notifications';
 
 const FILTERS = [
   { id: 'all', label: 'Tous', icon: null },
@@ -14,10 +17,16 @@ const FILTERS = [
 ] as const;
 
 export default function FeedPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<(typeof FILTERS)[number]['id']>('all');
   const [posts, setPosts] = useState<PostView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notifOpen, setNotifOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
+
+  const { notifications, unreadCount, loading: notifLoading, markRead, markAllRead } =
+    useNotifications(user?.id ?? null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,8 +50,36 @@ export default function FeedPage() {
             <div className="mb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-zinc-400"><MapPin className="mr-1 h-3.5 w-3.5 text-green-500" />Cameroun</div>
             <h1 className="font-space text-2xl font-black tracking-tighter text-white">Autour de vous</h1>
           </div>
-          <button aria-label="Notifications" className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-zinc-900 text-white"><Bell className="h-5 w-5" /></button>
+
+          {/* Bell button + panel */}
+          <div className="relative">
+            <button
+              ref={bellRef}
+              aria-label="Notifications"
+              onClick={() => setNotifOpen((prev) => !prev)}
+              className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-zinc-900 text-white transition hover:bg-zinc-800"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-[10px] font-black text-white shadow-lg">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notifOpen && user && (
+              <NotificationPanel
+                notifications={notifications}
+                unreadCount={unreadCount}
+                loading={notifLoading}
+                onMarkRead={markRead}
+                onMarkAllRead={markAllRead}
+                onClose={() => setNotifOpen(false)}
+              />
+            )}
+          </div>
         </div>
+
         <div className="flex justify-center px-2">
           <div className="flex max-w-full space-x-1 overflow-x-auto rounded-full border border-white/5 bg-zinc-900 p-1.5">
             {FILTERS.map((filter) => {
